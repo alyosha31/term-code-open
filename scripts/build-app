@@ -1,0 +1,19 @@
+#!/bin/bash
+set -euo pipefail
+
+project_dir="$(cd "$(dirname "$0")/.." && pwd)"
+configuration="${CONFIGURATION:-release}"
+app_dir="$project_dir/dist/TermCodeOpen.app"
+contents_dir="$app_dir/Contents"
+
+cd "$project_dir"
+swift build -c "$configuration" --product term-code-open
+binary_dir="$(swift build -c "$configuration" --show-bin-path)"
+
+mkdir -p "$contents_dir/MacOS" "$contents_dir/Resources"
+cp "$binary_dir/term-code-open" "$contents_dir/MacOS/TermCodeOpen"
+cp "$project_dir/Resources/Info.plist" "$contents_dir/Info.plist"
+chmod 755 "$contents_dir/MacOS/TermCodeOpen"
+/usr/bin/codesign --force --sign - "$app_dir"
+
+echo "$app_dir"

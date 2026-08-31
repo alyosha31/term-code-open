@@ -1,0 +1,14 @@
+#!/bin/bash
+set -euo pipefail
+
+app="$HOME/Applications/TermCodeOpen.app"
+cli="$HOME/.local/bin/term-code-open"
+
+if [[ -d "$app" ]]; then
+    /usr/bin/osascript -e 'tell application "Finder" to delete POSIX file "'"$app"'"'
+fi
+if [[ -f "$cli" ]]; then
+    /usr/bin/osascript -e 'tell application "Finder" to delete POSIX file "'"$cli"'"'
+fi
+
+echo "Moved installed Term Code Open files to Trash."

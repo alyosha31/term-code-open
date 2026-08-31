@@ -1,0 +1,16 @@
+#!/bin/bash
+set -euo pipefail
+
+project_dir="$(cd "$(dirname "$0")/.." && pwd)"
+reference="${1:-README.md:1}"
+binary="$HOME/.local/bin/term-code-open"
+
+if [[ ! -x "$binary" ]]; then
+    binary="$project_dir/.build/debug/term-code-open"
+    cd "$project_dir"
+    swift build --product term-code-open
+fi
+
+cd "$project_dir"
+echo "Command-click this link in Ghostty:"
+"$binary" --osc8-reference "$reference" "$reference"

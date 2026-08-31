@@ -1,0 +1,9 @@
+#!/bin/bash
+set -euo pipefail
+
+if [[ $# -ne 1 ]]; then
+    echo "Usage: scripts/inspect-osc8 TYPESCRIPT_FILE" >&2
+    exit 64
+fi
+
+perl -0777 -ne 'while (/\e\]8;[^;]*;(.*?)(?:\e\\|\x07)/sg) { print "$1\n" if length $1 }' "$1"

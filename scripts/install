@@ -1,0 +1,19 @@
+#!/bin/bash
+set -euo pipefail
+
+project_dir="$(cd "$(dirname "$0")/.." && pwd)"
+"$project_dir/scripts/build-app"
+source_app="$project_dir/dist/TermCodeOpen.app"
+applications_dir="$HOME/Applications"
+destination_app="$applications_dir/TermCodeOpen.app"
+bin_dir="$HOME/.local/bin"
+launch_services="/System/Library/Frameworks/CoreServices.framework/Frameworks/LaunchServices.framework/Support/lsregister"
+
+mkdir -p "$applications_dir" "$bin_dir"
+/usr/bin/ditto "$source_app" "$destination_app"
+cp "$destination_app/Contents/MacOS/TermCodeOpen" "$bin_dir/term-code-open"
+chmod 755 "$bin_dir/term-code-open"
+"$launch_services" -f "$destination_app"
+
+echo "Installed $destination_app"
+echo "Installed $bin_dir/term-code-open"
