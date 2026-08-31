@@ -7,6 +7,63 @@ private func report(_ error: Error) {
     FileHandle.standardError.write(Data("term-code-open: \(message)\n".utf8))
 }
 
+private enum CLIError: LocalizedError {
+    case missingValue(String)
+    case invalidNumber(String, String)
+    case unknownOption(String)
+
+    var errorDescription: String? {
+        switch self {
+        case let .missingValue(option):
+            return "Missing value for \(option)."
+        case let .invalidNumber(option, value):
+            return "Invalid numeric value for \(option): \(value)."
+        case let .unknownOption(option):
+            return "Unknown option: \(option)."
+        }
+    }
+}
+
+private struct StructuredReferenceArguments {
+    var file: String?
+    var cwd = FileManager.default.currentDirectoryPath
+    var line = 1
+    var column = 1
+    var endLine: Int?
+    var preview = false
+
+    init(_ arguments: [String]) throws {
+        var index = 0
+        while index < arguments.count {
+            let option = arguments[index]
+            if option == "--preview-file" {
+                preview = true
+                index += 1
+                continue
+            }
+            guard index + 1 < arguments.count else { throw CLIError.missingValue(option) }
+            let value = arguments[index + 1]
+            switch option {
+            case "--file": file = value
+            case "--cwd": cwd = value
+            case "--line": line = try Self.number(value, for: option)
+            case "--column", "--col": column = try Self.number(value, for: option)
+            case "--end": endLine = try Self.number(value, for: option)
+            default: throw CLIError.unknownOption(option)
+            }
+            index += 2
+        }
+        guard file != nil else { throw CLIError.missingValue("--file") }
+    }
+
+    private static func number(_ value: String, for option: String) throws -> Int {
+        guard let number = Int(value), number > 0 else {
+            throw CLIError.invalidNumber(option, value)
+        }
+        return number
+    }
+}
+
 @MainActor
 final class AppDelegate: NSObject, NSApplicationDelegate {
     private let opener = ReferenceOpener()
@@ -45,7 +102,26 @@ func runCLI(arguments: [String]) -> Int32 {
     let parser = ReferenceParser()
     let linkBuilder = LinkBuilder()
     do {
-        if arguments.count == 2, arguments[0] == "--preview" {
+        if arguments.contains("--file") {
+            let structured = try StructuredReferenceArguments(arguments)
+            if structured.preview {
+                print(try opener.preview(
+                    file: structured.file!,
+                    cwd: structured.cwd,
+                    line: structured.line,
+                    column: structured.column,
+                    endLine: structured.endLine
+                ))
+            } else {
+                try opener.open(
+                    file: structured.file!,
+                    cwd: structured.cwd,
+                    line: structured.line,
+                    column: structured.column,
+                    endLine: structured.endLine
+                )
+            }
+        } else if arguments.count == 2, arguments[0] == "--preview" {
             print(try opener.preview(url: arguments[1]))
         } else if arguments.count == 2, arguments[0] == "--reference" {
             try opener.open(reference: arguments[1], cwd: FileManager.default.currentDirectoryPath)
@@ -80,6 +156,8 @@ func runCLI(arguments: [String]) -> Int32 {
               term-code-open --preview-reference REFERENCE
               term-code-open --url-reference REFERENCE
               term-code-open --osc8-reference REFERENCE [LABEL]
+              term-code-open --file FILE [--cwd DIR] [--line N] [--column N] [--end N]
+              term-code-open --preview-file --file FILE [--cwd DIR] [--line N] [--column N]
             """)
             return arguments.isEmpty ? 0 : 64
         }

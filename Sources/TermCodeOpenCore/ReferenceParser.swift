@@ -52,6 +52,24 @@ public struct ReferenceParser {
         return CodeReference(fileURL: fileURL, line: line, column: column, endLine: endLine)
     }
 
+    public func parse(
+        file: String,
+        cwd: String,
+        line: Int = 1,
+        column: Int = 1,
+        endLine: Int? = nil,
+        requireExistingFile: Bool = true
+    ) throws -> CodeReference {
+        guard line > 0 else { throw CodeReferenceError.invalidPosition(String(line)) }
+        guard column > 0 else { throw CodeReferenceError.invalidPosition(String(column)) }
+        if let endLine, endLine <= 0 {
+            throw CodeReferenceError.invalidPosition(String(endLine))
+        }
+        let fileURL = try resolve(path: file, cwd: cwd)
+        try validate(fileURL, requireExistingFile: requireExistingFile)
+        return CodeReference(fileURL: fileURL, line: line, column: column, endLine: endLine)
+    }
+
     private func resolve(path rawPath: String, cwd: String?) throws -> URL {
         let expandedPath = NSString(string: rawPath).expandingTildeInPath
         if expandedPath.hasPrefix("/") {

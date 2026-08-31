@@ -17,6 +17,23 @@ public struct ReferenceOpener {
         try open(reference)
     }
 
+    public func open(
+        file: String,
+        cwd: String,
+        line: Int = 1,
+        column: Int = 1,
+        endLine: Int? = nil
+    ) throws {
+        let reference = try parser.parse(
+            file: file,
+            cwd: cwd,
+            line: line,
+            column: column,
+            endLine: endLine
+        )
+        try open(reference)
+    }
+
     public func preview(url: String) throws -> String {
         let reference = try parser.parse(url: url)
         return try preview(reference)
@@ -24,6 +41,23 @@ public struct ReferenceOpener {
 
     public func preview(reference rawReference: String, cwd: String) throws -> String {
         let reference = try parser.parse(reference: rawReference, cwd: cwd)
+        return try preview(reference)
+    }
+
+    public func preview(
+        file: String,
+        cwd: String,
+        line: Int = 1,
+        column: Int = 1,
+        endLine: Int? = nil
+    ) throws -> String {
+        let reference = try parser.parse(
+            file: file,
+            cwd: cwd,
+            line: line,
+            column: column,
+            endLine: endLine
+        )
         return try preview(reference)
     }
 

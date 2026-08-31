@@ -86,7 +86,23 @@ Command-click the printed reference in Ghostty. A fresh Ghostty tab should open 
 
 ## Agent integration
 
-An agent must emit an OSC 8 hyperlink whose target uses the `nvim://` contract. A visible `path:line` reference by itself is not enough, and an OSC 8 link targeting `file://` is not automatically rewritten.
+The clean integration is for the terminal to recognize a visible `path:line[:column]` reference and invoke Term Code Open with structured arguments. This works even when an agent emits plain text rather than OSC 8.
+
+Ghostty is discussing a `link-file-command` option that implements this behavior, but it is not available in stable Ghostty 1.3.1 yet. With that implementation, the configuration is:
+
+```ini
+link-file-command = /Users/you/.local/bin/term-code-open --file $FILE --line $LINE --column $COL
+```
+
+See [Ghostty's custom URL-handler discussion](https://github.com/ghostty-org/ghostty/discussions/9546) and the linked `feat/link-file-command` development branch. The proposed Ghostty implementation resolves relative references against the terminal working directory and only invokes the command for files that exist.
+
+The equivalent handler can be tested today without a patched Ghostty:
+
+```bash
+term-code-open --file README.md --line 10 --column 1
+```
+
+`nvim://` remains useful for applications that can emit a custom OSC 8 target directly:
 
 The escape sequence is conceptually:
 
@@ -96,14 +112,14 @@ visible/path.py:42
 ESC ] 8 ; ; ESC \
 ```
 
-To check what a terminal agent actually emits, record it through a pseudo-terminal:
+To check whether a terminal agent emits OSC 8, record it through a pseudo-terminal:
 
 ```bash
 script -q /tmp/agent.typescript claude
 scripts/inspect-osc8 /tmp/agent.typescript
 ```
 
-Repeat with `codex` or another CLI. If the extracted URI is `nvim://`, Term Code Open can handle it directly. If it is `file://`, the agent needs configuration or an adapter that rewrites the OSC 8 target.
+Repeat with `codex` or another CLI. Term Code Open's development was tested with Claude Code 2.1.251: ordinary code references were plain text in both print and interactive modes, while web links used OSC 8. That is why terminal-level path matching is the preferred integration.
 
 ## Plain references
 
@@ -119,6 +135,15 @@ Open one directly:
 
 ```bash
 term-code-open --reference 'relative/file.py:42-57'
+```
+
+Or use structured arguments, which are designed for terminal integrations and safely preserve paths containing spaces:
+
+```bash
+term-code-open \
+  --file '/absolute/project/source file.py' \
+  --line 42 \
+  --column 7
 ```
 
 Relative paths are resolved against the CLI's current working directory.

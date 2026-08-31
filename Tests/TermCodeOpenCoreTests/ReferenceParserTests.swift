@@ -67,4 +67,19 @@ final class ReferenceParserTests: XCTestCase {
             XCTAssertEqual(error as? CodeReferenceError, .unsupportedAction("run"))
         }
     }
+
+    func testParsesStructuredFileArguments() throws {
+        let reference = try parser.parse(
+            file: "Sources/App.swift",
+            cwd: "/tmp/work",
+            line: 12,
+            column: 4,
+            endLine: 18,
+            requireExistingFile: false
+        )
+        XCTAssertEqual(reference.fileURL.path, "/tmp/work/Sources/App.swift")
+        XCTAssertEqual(reference.line, 12)
+        XCTAssertEqual(reference.column, 4)
+        XCTAssertEqual(reference.endLine, 18)
+    }
 }
